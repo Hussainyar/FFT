@@ -1,0 +1,66 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Dec 13 10:07:23 2023
+
+@author: Dong Li
+"""
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+from scipy.fft import fft, fftfreq
+path='./scanlongrange/'
+cp_list=['0-2000-in-4000-zi08','500-2000-in-4000-zi12','1200-2000-in-4000-zi08']
+labels = ['lc=2000', 'lc=500', 'lc=0']  # Custom labels for each dataset
+#cp_list=['']
+
+plt.figure()
+for cp in cp_list:
+    #datac=pd.read_table(path+"firerateB"+cp+".dat", sep="\s+", names=['time','A', 'B', 'C','er','ir','tr']) 
+    #datac=pd.read_table("firingfrequency0-2000-in-4000-zi08.dat", sep="\s+", names=['time','A', 'B', 'C','er','ir','tr']) 
+    datac=pd.read_table("firingfrequency"+cp+".dat", sep="\s+", names=['time','A', 'B', 'C','er','ir','tr']) 
+    signal0=np.array(datac.loc[:,'ir'])
+    ntotal=len(signal0)
+    #nmove=150
+    nmove=10
+    #nlap=200
+    nlap=150
+    dt=(datac.loc[2,'time']-datac.loc[1,'time'])*0.001
+    N=ntotal-nmove*nlap
+    print(ntotal,N,dt)
+    xf = fftfreq(N, dt)[:N//2]
+    yfb_list=[]
+    for i in range(nlap):
+        signal=signal0[i*nmove:i*nmove+N]
+        yf=fft(signal)
+        yfb=2.0/N * np.abs(yf[0:N//2])
+        yfb_list.append(yfb)
+    
+    yfb_list_np=np.array(yfb_list)
+    yfb2=np.square(yfb_list_np)
+    yfb2_mean=np.mean(yfb2,0)
+    yfb2_s=np.sqrt(yfb2_mean)
+    
+#    nfmean=25
+    nfmean=1
+    nf0=len(yfb2_s)
+    nf=nf0//nfmean
+    yfb2_s0=np.reshape(yfb2_s[:nfmean*nf],(nf,nfmean))
+    xf_s0=np.reshape(xf[:nfmean*nf],(nf,nfmean))
+    
+    yfb2_s0_mean=np.mean(yfb2_s0,1)
+    xf_s0_mean=np.mean(xf_s0,1)
+    plt.plot(xf_s0_mean[nfmean:], yfb2_s0_mean[nfmean:], linewidth=0.5, label=labels)
+    #print(yfb2_s0_mean[nfmean:])
+
+plt.legend()
+plt.ylim((0,10))
+plt.xlabel('frequency(Hz)')
+#plt.title('set local from global connections')
+#plt.text(1,0.0,'inputs parameters: 0.3')
+#plt.text(1,0.05,'connection probablity: 0.8')
+plt.show()
+
+
+
+
